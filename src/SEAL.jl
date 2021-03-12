@@ -1,7 +1,107 @@
 module SEAL
+module libsealc
+  # SEAL_jll provides `libsealc`, which we will use in this package
+  using SEAL_jll
+  using C
+  using C: @cxx_cmd, @cxx_str
+  
+  let
+    seal_path = SEAL_jll.get_libsealc_path() |> dirname |> dirname
+    # @info "SEAL path" seal_path
+    
+    # For the actual include directory we need to first find the version-specific directory
+    seal_include = joinpath(seal_path, "include")
+    function get_version_include(include_dir)
+      version_include = ""
+      for dir in readdir(seal_include)
+        if startswith(dir, "SEAL-")
+          version_include = dir
+          break
+        end
+      end
+      return version_include
+    end
+    version_include = get_version_include(seal_include)
+    if isempty(version_include)
+      error("could not find proper include directory path in $seal_include")
+    end
+    seal_include = joinpath(seal_include, version_include)
+    seal_include_c = joinpath(seal_include, "seal", "c")
+    include_override = joinpath(@__DIR__, "include_override")
+    # @info "SEAL include directory" seal_include
+    # @info "SEAL C include directory" seal_include_c
+    # @info "include override directory" include_override
+    
+    # Find header files to consider
+    # headers = String["helper.h"]
+    headers = String[]
+    skip_headers = ["targetver.h"]
+    for filename in readdir(seal_include_c)
+      if !isfile(joinpath(seal_include_c, filename))
+        continue
+      end
+      if !endswith(filename, ".h")
+        continue
+      end
+      if filename in skip_headers
+        continue
+      end
+      push!(headers, joinpath("seal", "c", filename))
+    end
+    # @info "Header files" headers
+    
+    # Build list of arguments for Clang
+    clang_args = String[]
+    include_directories = [seal_include]
+    # include_directories = [seal_include, include_override]
+    for dir in include_directories
+      append!(clang_args, ("-I", dir))
+    end
+    
+    cxx`-std=c++17 $(clang_args) -L$(dirname(SEAL_jll.get_libsealc_path())) -lsealc`
+  end
+  
+  
+  const cxx"int8_t" = Int8
+  const cxx"int16_t" = Int16
+  const cxx"int32_t" = Int32
+  const cxx"int64_t" = Int64
+  const cxx"uint8_t" = UInt8
+  const cxx"uint16_t" = UInt16
+  const cxx"uint32_t" = UInt32
+  const cxx"uint64_t" = UInt64
+  
+  cxx"""
+    #include <seal/c/defines.h>
+    #include <seal/c/batchencoder.h>
+    #include <seal/c/ciphertext.h>
+    #include <seal/c/ckksencoder.h>
+    #include <seal/c/contextdata.h>
+    #include <seal/c/decryptor.h>
+    #include <seal/c/encryptionparameterqualifiers.h>
+    #include <seal/c/encryptionparameters.h>
+    #include <seal/c/encryptor.h>
+    #include <seal/c/evaluator.h>
+    #include <seal/c/galoiskeys.h>
+    #include <seal/c/keygenerator.h>
+    #include <seal/c/kswitchkeys.h>
+    #include <seal/c/memorymanager.h>
+    #include <seal/c/memorypoolhandle.h>
+    #include <seal/c/modulus.h>
+    #include <seal/c/plaintext.h>
+    #include <seal/c/publickey.h>
+    #include <seal/c/relinkeys.h>
+    #include <seal/c/sealcontext.h>
+    #include <seal/c/secretkey.h>
+    #include <seal/c/serialization.h>
+    #include <seal/c/stdafx.h>
+    #include <seal/c/valcheck.h>
+    #include <seal/c/version.h>
+  """j
+end
 
-# SEAL_jll provides `libsealc`, which we will use in this package
-using SEAL_jll
+using .libsealc
+using C
 
 """
     SEALObject

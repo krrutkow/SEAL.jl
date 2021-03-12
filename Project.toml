@@ -4,8 +4,10 @@ authors = ["Michael Schlottke-Lakemper <michael@sloede.com>"]
 version = "0.4.2-pre"
 
 [deps]
+C = "bc0ddde3-6c8e-4a34-8f46-3250e90438db"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SEAL_jll = "cdf55027-1209-57fc-8789-28745714751d"
 
 [compat]
 julia = "1.5"
+C = "^0.1"
